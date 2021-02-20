@@ -9,13 +9,18 @@
 
 # ＜概要＞
 # - ユーザベース協調フィルタリングを{recomenderlab}で実行して動作を確認する
-# - スクラッチ実装してアルゴリズムを知る
+# - ユーザベース協調フィルタリングを独自に実装する
 
 
 # ＜ユーザーベース協調フィルタリング＞
 # -1. ユーザ101番と似たような評価をしているユーザを探す（類似度の高いユーザー）
 # -2. 類似度の高い上位k人の評価を参考に、ユーザ101番が評価していない作品の評価値を推定する
 # -3. 推定評価値の高い上位10の映画を抽出する
+
+
+# ＜参考＞
+# - {recomenderlab}の関数一覧
+# https://www.rdocumentation.org/packages/recommenderlab/versions/0.2-6
 
 
 # ＜目次＞
@@ -27,26 +32,28 @@
 
 # 0 準備 ------------------------------------------------------------------------
 
+# ライブラリ
 library(tidyverse)
 library(recommenderlab)
+
 
 # データセットのロード
 data('MovieLense')
 
 # データ構造の確認
+# --- [1] "realRatingMatrix"
 MovieLense %>% class()
 MovieLense %>% glimpse()
 
 # データ確認
 # --- 疎行列となっている
 MovieLense@data
-MovieLense@normalize
 
 
 # 1 EDA --------------------------------------------------------------------
 
 # データ変換
-# --- 分かりやすくするためmatrix型に変換
+# --- matrix型に変換（操作性を高めるため）
 MovieLense.mtx <- MovieLense %>% as('matrix')
 
 # データ確認
@@ -60,8 +67,8 @@ MovieLense %>% image()
 # ヒストグラム作成
 # --- 行(ユーザー)ごとに有効な列数(レコメンド)の数を集計
 # --- リコメンド頻度の低い観測値(行)が非常に多い
-movies.per.user <- apply(!is.na(MovieLense.mtx), 1, sum)
-movies.per.user %>% hist(main='number of rated movies')
+apply(!is.na(MovieLense.mtx), 1, sum) %>%
+  hist(main='number of rated movies')
 
 
 # 2 recomenderlabによる実行 --------------------------------------------------
@@ -74,8 +81,8 @@ movies.per.user %>% hist(main='number of rated movies')
 # - AR  ： アソシエーションルール
 
 
-# 訓練データの佐久市江
-# --- 1番目～100番目のユーザのデータを学習データとして利用
+# 訓練データの作成
+# --- 1番目～100番目のユーザ（訓練データ）
 train <- MovieLense[1:100]
 
 # 学習
@@ -89,7 +96,9 @@ rec %>% glimpse()
 # 予測
 # --- 推定した評価値の確認
 # --- 101行目のサンプルがどのようなレコメンドになるか予測
-pred.ratings <- rec %>% predict(MovieLense[101], type='ratings')
+pred.ratings <-
+  rec %>%
+    predict(MovieLense[101], type='ratings')
 
 
 # 評価値の高いTOP10を抽出

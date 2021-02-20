@@ -9,6 +9,8 @@
 
 # ＜協調フィルタリングとは＞
 # - 広義にはユーザの利用履歴を利用するレコメンド手法全体を指す
+#   --- よって多くのアルゴリズムが含まれる
+# - ｢類似度｣を使って類似属性のものに似たレコメンドを出すというのが基本コンセプト
 # - 商品についてドメイン知識を持たなくても推奨することができる
 # - 近傍ベース協調フィルタリングはコンセプトも実装もシンプルでそこそこ良い精度が出る
 #   --- knn回帰がアルゴリズムとして用いられる
@@ -61,7 +63,7 @@ library(tidyverse)
 
 
 # データ作成
-# --- 評価値行列の作成
+# --- 評価行列の作成
 rating.mtx <-
   matrix(
     c(5, 3, 4, 2, NA,
@@ -70,13 +72,11 @@ rating.mtx <-
       3, 3, 1, 5, 4,
       1, 5, 5, 2, 1), nrow = 5 , byrow = TRUE)
 
-
 # ラベル作成
 # --- 行・列ラベル付与
 row.lbl <- c("鈴木さん", "ユーザ1", "ユーザ2", "ユーザ3", "ユーザ4")
 col.lbl <- c("作品1", "作品2", "作品3", "作品4", "ダーク")
 dimnames(rating.mtx) <- list(row.lbl, col.lbl)
-
 
 # データ確認
 rating.mtx %>% print()
@@ -89,8 +89,9 @@ rating.mtx.p <-
   rating.mtx %>%
     as.data.frame() %>%
     rownames_to_column("userId") %>%
-    gather(key="movieId", value="rating", -userId) %>%
-    mutate(userId=factor(userId, levels=row.lbl[5:1]), movieId=factor(movieId, levels=col.lbl))
+    gather(key = "movieId", value = "rating", -userId) %>%
+    mutate(userId = factor(userId, levels=row.lbl[5:1]),
+           movieId = factor(movieId, levels = col.lbl))
 
 # プロット作成
 # --- ヒートマップ
@@ -108,7 +109,7 @@ rating.mtx.p %>%
 # --- 距離行列の逆数
 # --- ユーグリッド距離で測定
 sim.mtx <-
-  (1 / (dist(x=rating.mtx[,1:4], method = "euclidean", upper=TRUE, diag=TRUE))) %>%
+  (1 / (dist(x=rating.mtx[,1:4], method = "euclidean", upper = TRUE, diag = TRUE))) %>%
      as('matrix')
 
 # 類似度

@@ -16,12 +16,12 @@ import numpy as np
 from sklearn import neighbors
 
 
-# 評価値行列
+# 評価行列
 rating_mtx = np.array([[5, 3, 4, 2, np.NaN],
-              [3, 1, 2, 3, 3],
-              [4, 3, 4, 2, 5],
-              [3, 3, 1, 5, 4],
-              [1, 5, 5, 2, 1]])
+                       [3, 1, 2, 3, 3],
+                       [4, 3, 4, 2, 5],
+                       [3, 3, 1, 5, 4],
+                       [1, 5, 5, 2, 1]])
 
 # 学習用データ（鈴木さん以外）
 # --- X: 説明変数
@@ -33,6 +33,8 @@ y = rating_mtx[1:5, 4]
 X_suzuki = rating_mtx[0, 0:4]
 
 # モデル構築
+# --- インスタンス生成
+# --- 学習
 knn = neighbors.KNeighborsRegressor(3, weights='distance', metric='euclidean')
 model = knn.fit(X, y)
 
