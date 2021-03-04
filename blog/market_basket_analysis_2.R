@@ -23,7 +23,7 @@
 
 # 0 準備 --------------------------------------------------------------------------
 
-# Importing libraries
+# ライブラリ
 library(data.table)
 library(tidyverse)
 library(knitr)

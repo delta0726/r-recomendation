@@ -12,7 +12,7 @@
 
 # ＜課題＞
 # - {recommenderlab}は大規模データセットにおいて高速な計算が難しい
-# - Smartcatの実装は強調フィルタリングの高速化を実装している
+#   --- k近傍法の遅延学習が根本的な原因
 
 
 # ＜参考＞
@@ -20,7 +20,7 @@
 # https://github.com/smartcat-labs/collaboratory
 
 
-# 協調フィルタリングの改善されたR実装
+# 協調フィルタリングの改善されたR実装（Smart cat）
 # https://blog.smartcat.io/2017/improved-r-implementation-of-collaborative-filtering/
 
 
@@ -34,6 +34,7 @@
 
 # 0 準備 ----------------------------------------------------------------------------
 
+# ライブラリ
 library(tidyverse)
 library(knitr)
 library(Matrix)
@@ -48,7 +49,7 @@ source("blog/func/similarity_measures.R")
 
 # データ取得
 path_csv <- "blog/data/retail.csv"
-retail <- read_csv(path_csv)
+retail <- path_csv %>% read_csv()
 
 
 # 1 データ加工 ------------------------------------------------------------------------
@@ -117,7 +118,9 @@ tic()
 # 実行
 recomm_smartcat <-
   all_orders_dgc %>%
-    predict_cf(prediction_indices, "ibcf", FALSE, cal_cos, 3, FALSE, 4000, 2000)
+    predict_cf(prediction_indices, alg_method = "ibcf",
+               normalization = FALSE, cal_cos, k = 3, make_positive_similarities = FALSE,
+               rowchunk_size = 4000, columnchunk_size = 2000)
 
 # 計測終了
 toc()
@@ -134,6 +137,7 @@ all_orders_brm %>% print()
 # 計測開始
 tic()
 
+# 実行
 recomm_lab <-
   all_orders_brm %>%
     Recommender(method = "IBCF",
@@ -146,5 +150,5 @@ toc()
 # 4 結果比較 -------------------------------------------------------------------------
 
 # 確認
-recomm_smartcat
-recomm_lab
+recomm_smartcat %>% print()
+recomm_lab %>% print()

@@ -14,9 +14,17 @@
 # - RANDOM   : アイテムをランダムに選んで、レコメンド
 # - POPULAR  : 購入ユーザー数に基づいて人気度が高いアイテムをユーザーにレコメンド
 # - UBCF     : ユーザーベース協調フィルタリング
-# - IBCF     : イテムベース協調フィルタリング
+# - IBCF     : アイテムベース協調フィルタリング
 # - PCA      : 次元削減手法の代表例である、主成分分析
 # - SVD      : Singular Value Decompositionという、次元削減手法の代表的なものの一つ
+
+
+# ＜フロー＞
+# 1. レコメンダーの作成
+#    --- 訓練データを使ってレコメンダーを作成する
+# 2. レコメンデーションの予測
+#    --- Top-Nリストを作成
+#    --- 未レーティングアイテムのレーティングを予測
 
 
 # ＜目次＞
@@ -29,8 +37,10 @@
 
 # 0 準備 ------------------------------------------------------------------------------------------
 
+# ライブラリ
 library(tidyverse)
 library(recommenderlab)
+library(magrittr)
 
 
 # データロード
@@ -50,7 +60,7 @@ MovieLense %>% as("data.frame") %>% glimpse()
 
 # マトリックス変換
 # --- もともと行列形式 (943 1664)
-# --- 列名が映画タイトル
+# --- 列名：映画タイトル / 行名：評価者ID
 # --- スパースデータ
 MovieLense %>% as("matrix") %>% dim()
 MovieLense %>% as("matrix") %>% colnames()
@@ -99,37 +109,39 @@ model <- train_data %>% Recommender(method = "UBCF")
 
 # 予測
 # --- 検証データ
-pred <- model %>% predict(valid_data, type="ratings")
+pred <- model %>% predict(valid_data, type = "ratings")
 
 # 確認
 # --- 検証データ(予測データ)
 # --- 検証データ(元データ)
+# --- 予測データは元データがNAの箇所に出現している（依然NAのものもある）
 pred %>% as( "matrix") %>% .[1:10, 1:5]
 valid_data %>% as( "matrix") %>% .[1:10, 1:5]
 
 
 # 4 全体でモデリング -------------------------------------------------------------------------------
 
-# splitを使って、評価データを作成
-# train=0.8で、8割のデータを使うとしている
-# given=15で、残り2割の評価データのうち、15件を予測用評価データとして使うことを示し、その他のデータは予測誤差計算用評価データとして利用することを示す。
+# データ作成
+# --- splitを使って、評価データを作成
+# --- train=0.8で、8割のデータを使うとしている
+# --- given=15で、残り2割の評価データのうち、15件を予測用評価データとして使うことを示し、その他のデータは予測誤差計算用評価データとして利用することを示す。
 data <- MovieLense %>% evaluationScheme(method = "split", train = 0.8, given = 15)
 
 # モデル構築
 # --- UBCF  : ユーザーベース協調フィルタリング
-# --- RANDOM: アイテムをランダムに選んで、レコメンド
-r.ubcf   <- data %>% getData("train") %>% Recommender(method="UBCF")
-r.random <- data %>% getData("train") %>% Recommender(method="RANDOM")
+# --- RANDOM: アイテムをランダムに選択
+r.ubcf   <- data %>% getData("train") %>% Recommender(method = "UBCF")
+r.random <- data %>% getData("train") %>% Recommender(method = "RANDOM")
 
 # 予測
-p.ubcf   <- r.ubcf %>% predict(getData(data, "known"), type="ratings")
-p.random <- r.random %>% predict(getData(data, "known"), type="ratings")
+p.ubcf   <- r.ubcf %>% predict(getData(data, "known"), type = "ratings")
+p.random <- r.random %>% predict(getData(data, "known"), type = "ratings")
 
-# 予測誤差計算用評価データを使って、予測用評価データより計算された、それぞれの誤差を計算
+# 評価メトリック
 metric_ubcf   <- p.ubcf %>% calcPredictionAccuracy(getData(data, "unknown"))
 metric_random <- p.random %>% calcPredictionAccuracy(getData(data, "unknown"))
 
-# 結果を出力
-ans <- rbind(metric_ubcf, metric_random)
-rownames(ans) <- c("UBCF", "RONDOM")
-print(ans)
+# メトリック確認
+metric_ubcf %>%
+  rbind(metric_random) %>%
+  set_rownames(c("UBCF", "RONDOM"))
